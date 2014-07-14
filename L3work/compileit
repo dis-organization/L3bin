@@ -1,0 +1,5 @@
+compile it
+
+g++ -c hdfL3.cpp -I/usr/local/include
+g++ -o hdfL3 hdfL3.o -L/usr/local/lib -lmfhdf -ldf -ljpeg -lz
+./hdfL3
