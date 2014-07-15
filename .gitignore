@@ -2,3 +2,5 @@
 .Rhistory
 .RData
 R/RCppExports.R
+src/*.o
+src/*.so
