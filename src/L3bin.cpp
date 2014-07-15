@@ -44,6 +44,31 @@ List rcpp_hello_world() {
   return z ;
 }
 
+//' Longitude and latitude from bin number.  
+//'
+//' Generate longitude and latitude coordinates from bin number. 
+//' @export
+// [[Rcpp::export]]
+List bin2latlon(IntegerVector bins){
+  short row;
+  
+  int bin, ibin;
+  int n = bins.size();
+  NumericVector clon(n);
+  NumericVector clat(n);
+  
+  for (ibin = 0; ibin < n; ibin++) {
+    row = NUMROWS - 1;
+    bin = bins[ibin];
+    while(bin < basebin[row]) row--;
+    clat[ibin] = latbin[row];
+    clon[ibin] = 360.0*(bin - basebin[row] + 0.5)/numbin[row] - 180.0;
+  }
+  List lonlat = List::create(clon, clat);
+  return lonlat;
+}
+
+
 
 //' Basic L3 bin files 
 //'
@@ -115,9 +140,31 @@ List binlist(CharacterVector filename) {
     return(EXIT_FAILURE);
   }
   
+//      uint bin_num ;
+//      short nobs ;
+//      short nscenes ;
+//      float weights ;
+//      float time_rec ;
+//    }; // binListType
+//    compound binDataType {
+//      float sum ;
+//      float sum_squared ;
+//    }; // binDataType
+//    compound binIndexType {
+//      uint start_num ;
+//      uint begin ;
+//      uint extent ;
+//      uint max ;
+
+  IntegerVector bin(numrecs);
+  IntegerVector nobservations(numrecs);
+  IntegerVector nsc(numrecs);
+  NumericVector wghts(numrecs);
+ // NumericVector time(numrecs);
   NumericVector parsum(numrecs);
   NumericVector parssq(numrecs);
-  IntegerVector bin(numrecs);
+  
+
   // this doesn't seem to be necessary?
   /* Set up to read the fields in the BinList Vdata records. */
   if(VSsetfields(vdata_id,BLIST_FIELDS) == FAIL){
@@ -228,9 +275,31 @@ List binlist(CharacterVector filename) {
     //    //  printf("%7d %9.5f %10.5f %9.5f %9.5f %10.5f %10.5f ",
     //    //   binnums[i],clat,clon,n,s,w,e);
     
+//      uint bin_num ;
+//      short nobs ;
+//      short nscenes ;
+//      float weights ;
+//      float time_rec ;
+//    }; // binListType
+//    compound binDataType {
+//      float sum ;
+//      float sum_squared ;
+//    }; // binDataType
+//    compound binIndexType {
+//      uint start_num ;
+//      uint begin ;
+//      uint extent ;
+//      uint max ;
+
+  bin[i] = bin_num;
+    nobservations[i] = nobs;
+    nsc[i] = nscenes;
+    wghts[i] = weights;
+   // time[i] = time_rec;
     parsum[i] = summ;
     parssq[i] = sum_sq;
-    bin[i] = bin_num;
+    
+    
     //    //  printf("%4d %3d ",nobs,nscenes);
     //    //  printf("% .8e % .8e % .8e ",sum,sum_sq,weights);
     //      printf("% .8e % .8e % .8e ",sum,sum_sq,0.0);
@@ -238,10 +307,7 @@ List binlist(CharacterVector filename) {
     //   //   printf("%3d",sel_cat);
     //      printf("\n");
     
-    
-  } 
-  
-  
+  }   
   if(VSdetach(pvd_id) == FAIL){
     fprintf(stderr,"-E- %s line %d: VSdetach(%d) failed.\n",
     __FILE__,__LINE__,pvd_id);
@@ -267,57 +333,44 @@ List binlist(CharacterVector filename) {
   free(binnums);
   
   
+  List z  = List::create() ;
+  z["bin_num"] = bin;
+  z["nobs"] = nobservations;
+  z["nscenes"] = nsc;
+  z["weights"] = wghts;
+  z["sum"] = parsum;
+  z["ssq"] = parssq;
   
-  List z            = List::create(parsum, parssq, bin) ;
-  
-  //NumericVector y   = NumericVector::create( 0.0, 1.0) ;
   return z ;
 }
 
  
- 
- 
- int binsearch(int bin, int vdata_id, int numrecs){
-   int lo, hi, mid;
-   
-   lo = 0;
-   hi = numrecs - 1;
-   while(lo <= hi){
-     mid = (lo + hi)/2;
-     if(VSseek(vdata_id,mid) == FAIL){
-       fprintf(stderr,"-E- %s line %d: VSseek(%d,%d) failed.\n",
-       __FILE__,__LINE__,vdata_id,mid);
-       exit(EXIT_FAILURE);
-     }
-     if(VSread(vdata_id,blistrec,1,FULL_INTERLACE) != 1){
-       fprintf(stderr,"-E- %s line %d: ",__FILE__,__LINE__);
-       fprintf(stderr,"VSread(%d,blistrec,1,FULL_INTERLACE) failed.\n",
-       vdata_id);
-       exit(EXIT_FAILURE);
-     }
-     /*
-     VSfpack() sets the global bin_num variable (and others)
-     via the bufptrs pointer array.
-     */
-     if(
-       VSfpack(
-         vdata_id,_HDF_VSUNPACK,BLIST_FIELDS,blistrec,BLIST_SIZE,1,NULL,bufptrs
-         )
-         == FAIL){
-           fprintf(stderr,"-E- %s line %d: ",__FILE__,__LINE__);
-           fprintf(stderr,"VSfpack(%d, ...) failed.\n", vdata_id);
-           exit(EXIT_FAILURE);
-         }
-         if     (bin < bin_num) hi = mid - 1;
-         else if(bin > bin_num) lo = mid + 1;
-         else                   return(mid);
-   }
-   return(-1);
- }
- 
+ char *bitstr16(int16 n){
+  static char   str[17];
+  int       i;
+
+  str[16]=0;
+  for(i = 0; i < 16; i++){
+    if(n & (1 << i)) str[i] = '1';
+    else             str[i] = '0';
+  }
+  return(str);
+}
+
+char *bitstr32(int32 n){
+  static char   str[33];
+  int       i;
+
+  str[32] = 0;
+  for(i = 0; i < 32; i++){
+    if(n & (1 << i)) str[i] = '1';
+    else             str[i] = '0';
+  } 
+  return(str);
+}
 
 
- 
+
 
 /*
 The following functions are based on the pseudocode found in Appendix A of:
