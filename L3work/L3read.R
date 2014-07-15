@@ -33,7 +33,7 @@ readL3bin <- function(x) {
    list(bin_num = binlist, data = datlist, start_num = stlist, hsize = hlist, weights = wlist)
  }
 
-
+bindex <- readL3bin("/home/mdsumner/Git/L3bin/L3work/S1998001.L3b_DAY_CHL.main")
 L3lonlat <- function(bin_num, start_num, hsize) {
   latbase <- seq(-89.958336, 89.958336, length = length(start_num))
   boffset <- findInterval(bin_num, start_num)
