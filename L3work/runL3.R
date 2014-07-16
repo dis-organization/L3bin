@@ -1,5 +1,5 @@
 library(L3bin)
-x <- binlist("/home/mdsumner/Git/L3bin/L3work/S1998001.L3b_DAY_CHL.main")
+##x <- binlist("/home/mdsumner/Git/L3bin/L3work/S1998001.L3b_DAY_CHL.main")
 
 x <- binlist("/rdsi/PRIVATE/oceandata.sci.gsfc.nasa.gov/SeaWiFS/L3BIN/1998/001/S19980011998031.L3b_MO_CHL.main")
 
@@ -13,16 +13,20 @@ L3lonlat <- function(bin_num, start_num, hsize) {
 }
 
 ll <- L3lonlat(x$bin_num, bindex$start_num, bindex$hsize)
-
+library(raadtools)
 chl <- readchla("1998-01-15", time.resolution = "monthly", product = "oceancolor")
 pal <- chl.pal(palette = TRUE)
-e <- extent(140, 150, -48, -40)
+e <- extent(140, 150, 70, -60)
 schl <- crop(chl, e)
 plot(schl, col = pal$cols, breaks = pal$breaks, legend = FALSE)
 
 ind <- extract(schl, ll, cellnumbers = TRUE)[,"cells"]
-vals <- x$sum[ind] / x$weights[ind]
 bad <- is.na(ind)
+vals <- x$sum[!bad] / x$weights[!bad]
+
 ind <- ind[!bad]
-vals <- vals[!bad]
+
+plot(ll[!bad, ], col = chl.pal(vals), pch = 16)
+
+
 

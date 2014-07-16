@@ -19,6 +19,21 @@ BEGIN_RCPP
     return __sexp_result;
 END_RCPP
 }
+// bin2latlon
+List bin2latlon(IntegerVector bins);
+RcppExport SEXP L3bin_bin2latlon(SEXP binsSEXP) {
+BEGIN_RCPP
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< IntegerVector >::type bins(binsSEXP );
+        List __result = bin2latlon(bins);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
+END_RCPP
+}
 // binlist
 List binlist(CharacterVector filename);
 RcppExport SEXP L3bin_binlist(SEXP filenameSEXP) {
