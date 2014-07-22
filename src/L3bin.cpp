@@ -32,26 +32,33 @@ static VOIDP    paramptrs[] = {&summ,&sum_sq};
 void    initbin(void);
 int   binsearch(int bin, int vdata_id, int numrecs);
 
-//' Say my name. 
+
+
+
+//' Parameters from initbin. 
 //'
-//' Short message from sponsor. 
+//' Initbin. 
 //' @export
 // [[Rcpp::export]]
-List rcpp_hello_world() {
-  CharacterVector x = CharacterVector::create( "foo", "bar" )  ;
-  NumericVector y   = NumericVector::create( 0.0, 1.0 ) ;
-  List z            = List::create( x, y, PI) ;
-  return z ;
+List initlist() {
+  initbin();
+  List alist = List::create() ; alist["totbins"] = totbins; alist["NUMROWS"] = NUMROWS;
+  return alist;
 }
+
+
+
+
 
 //' Longitude and latitude from bin number.  
 //'
 //' Generate longitude and latitude coordinates from bin number. 
 //' @export
 // [[Rcpp::export]]
-List bin2latlon(IntegerVector bins){
+List bin2lonlat(IntegerVector bins){
   short row;
-  
+    initbin();
+    
   int bin, ibin;
   int n = bins.size();
   NumericVector clon(n);
@@ -64,7 +71,9 @@ List bin2latlon(IntegerVector bins){
     clat[ibin] = latbin[row];
     clon[ibin] = 360.0*(bin - basebin[row] + 0.5)/numbin[row] - 180.0;
   }
-  List lonlat = List::create(clon, clat);
+  List lonlat = List::create();
+  lonlat["x"] = clon;
+  lonlat["y"] = clat;
   return lonlat;
 }
 
@@ -180,6 +189,10 @@ List binlist(CharacterVector filename) {
     __FILE__,__LINE__,file_id,PARAM);
     return(EXIT_FAILURE);
   }
+  
+  
+  
+  // pvd off
   pvd_id = VSattach(file_id, vdata_ref, "r");
   if(pvd_id == FAIL){
     fprintf(stderr,"-E- %s line %d: VSattach(%d,%d,\"r\") failed.\n",
@@ -201,6 +214,8 @@ List binlist(CharacterVector filename) {
     strcat(param_fields,PARAM);
     strcat(param_fields,"_sum_sq");
   }
+  
+  
   if(VSsetfields(pvd_id,param_fields) == FAIL){
     fprintf(stderr,"-E- %s line %d: VSsetfields(%d,%s) failed.\n",
     __FILE__,__LINE__,pvd_id,param_fields);
@@ -210,6 +225,9 @@ List binlist(CharacterVector filename) {
   
   // int   recno;
   
+  
+  
+  // separate loops for vdatat_id and pvd_id, because they seek to different places
   for (i = 0; i < numrecs; i++ ) {
     
     // recno = binsearch(binnums[i],vdata_id,numrecs);
@@ -236,9 +254,19 @@ List binlist(CharacterVector filename) {
       exit(EXIT_FAILURE);
     }
     
-    
-    //      double    n,s,w,e,clat,clon;
-    
+
+  bin[i] = bin_num;
+    nobservations[i] = nobs;
+    nsc[i] = nscenes;
+    wghts[i] = weights;
+   // time[i] = time_rec;
+       
+  }   
+
+
+ for (i = 0; i < numrecs; i++ ) {
+   
+    // pvd off
     /*
     Read the sum and sum-of-squares for the
     the specified parameter for this bin.
@@ -258,61 +286,29 @@ List binlist(CharacterVector filename) {
     VSfpack() sets the global sum and sum_sq variables
     via the paramptrs pointer array.
     */
-    if(VSfpack(pvd_id,_HDF_VSUNPACK,param_fields,paramrec,PREC_SIZE,1,NULL,paramptrs)	 == FAIL){
+    if(VSfpack(pvd_id,_HDF_VSUNPACK,param_fields,paramrec,PREC_SIZE,1,NULL,paramptrs)   == FAIL){
       fprintf(stderr,"-E- %s line %d: ",__FILE__,__LINE__);
       fprintf(stderr,"VSfpack(%d, ...) failed.\n", pvd_id);
       return(EXIT_FAILURE);
     }
     
-    //NumericVector yyy   = NumericVector::create(vdata_id, numrecs, summ, sum_sq, recno) ;
-    //return yyy;
-    //
-    //      /* Get the geographical coordinates associated with this bin. */
-    //    //  bin2latlon(binnums[i],&clat,&clon);
-    //    //  bin2bounds(binnums[i],&n,&s,&w,&e);
-    //
-    //      /* Output the results. */
-    //    //  printf("%7d %9.5f %10.5f %9.5f %9.5f %10.5f %10.5f ",
-    //    //   binnums[i],clat,clon,n,s,w,e);
-    
-//      uint bin_num ;
-//      short nobs ;
-//      short nscenes ;
-//      float weights ;
-//      float time_rec ;
-//    }; // binListType
-//    compound binDataType {
-//      float sum ;
-//      float sum_squared ;
-//    }; // binDataType
-//    compound binIndexType {
-//      uint start_num ;
-//      uint begin ;
-//      uint extent ;
-//      uint max ;
 
-  bin[i] = bin_num;
-    nobservations[i] = nobs;
-    nsc[i] = nscenes;
-    wghts[i] = weights;
-   // time[i] = time_rec;
+
+   // pvd off
     parsum[i] = summ;
     parssq[i] = sum_sq;
     
-    
-    //    //  printf("%4d %3d ",nobs,nscenes);
-    //    //  printf("% .8e % .8e % .8e ",sum,sum_sq,weights);
-    //      printf("% .8e % .8e % .8e ",sum,sum_sq,0.0);
-    //   //   printf("%.16s %.32s ",bitstr16(time_rec),bitstr32(flags_set));
-    //   //   printf("%3d",sel_cat);
-    //      printf("\n");
-    
-  }   
+}
+
+
+// pvd off
   if(VSdetach(pvd_id) == FAIL){
     fprintf(stderr,"-E- %s line %d: VSdetach(%d) failed.\n",
     __FILE__,__LINE__,pvd_id);
     return(EXIT_FAILURE);
   }
+
+
   if(VSdetach(vdata_id) == FAIL){
     fprintf(stderr,"-E- %s line %d: VSdetach(%d) failed.\n",
     __FILE__,__LINE__,vdata_id);
@@ -396,5 +392,7 @@ void initbin(void){
   }
   totbins = basebin[NUMROWS - 1] + numbin[NUMROWS - 1] - 1;
 }
+
+
 
 
