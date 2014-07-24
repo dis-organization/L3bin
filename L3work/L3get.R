@@ -20,8 +20,8 @@ parseFolders <- function(x, ndigit = 4) {
 
 ## VIIRS needs more thought "MO_*.CHL" etc. doesn't match properly local/remote
 ##filter <- "DAY_CHL"
-filter <- "YR_"
-daysfilter <- "001"
+filter <- "DAY_RRS"
+##daysfilter <- "001"
 ##filter <- "YR_CHL"
 baselocal <- "/rdsi/PRIVATE/oceandata.sci.gsfc.nasa.gov"
 
@@ -50,7 +50,7 @@ for (isensor in seq_along(sensor)) {
    xx <- file.path(x, years[iyear])
    days <- parseFolders(xx, ndigit = 3)
   
-   days <- grep(daysfilter, days, value = TRUE)
+  ## days <- grep(daysfilter, days, value = TRUE)
     for (iday in seq_along(days)) {
       ## this is years so kick things along after first day
   

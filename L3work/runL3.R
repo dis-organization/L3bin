@@ -1,4 +1,12 @@
 library(L3bin)
+
+
+
+f <- "/rdsi/PRIVATE/oceandata.sci.gsfc.nasa.gov/SeaWiFS/L3BIN/1998/001/S1998001.L3b_DAY_RRS.main"
+x <- binlist(f)
+
+
+
 ##x <- binlist("/home/mdsumner/Git/L3bin/L3work/S1998001.L3b_DAY_CHL.main")
 
 ##x <- binlist("/rdsi/PRIVATE/oceandata.sci.gsfc.nasa.gov/SeaWiFS/L3BIN/1998/001/S19980011998031.L3b_MO_CHL.main")
@@ -65,7 +73,7 @@ library(raadtools)
 isub <- sample(nrow(ll), 1e4)
 ##plot(ll[isub, ], col = chl.pal(d$sum[isub]/d$weights[isub]), pch = ".")
 
-NUMROWS <- 26
+NUMROWS <- 2160
 latbin <- (((seq(NUMROWS) - 1) + 0.5) * 180 / NUMROWS ) - 90
 numbin <- as.integer(2 * NUMROWS * cos(latbin * pi/180) + 0.5)
 basebin <- cumsum(c(1L, numbin[-length(numbin)]))
