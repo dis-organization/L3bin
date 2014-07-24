@@ -1,10 +1,7 @@
-
 //get_vdata_info.c
 //bingo  http://www.hdfgroup.org/training/HDFtraining/UsersGuide/Example_Vd.fm.html#928503
- #include "hdf.h"
- //#define  FILE_NAME      "General_Vdatas.hdf"
- #define  FIELD_SIZE     80         /* maximum length of all the field names */
- #define MAXNVDATA      80
+#include "hdf.h"
+#define  FIELD_SIZE     80         /* maximum length of all the field names */
 
 #include <Rcpp.h>
 using namespace Rcpp;
@@ -21,9 +18,9 @@ using namespace Rcpp;
 //' if (!file.exists(f)) {
 //'   download.file(sprintf("http://oceandata.sci.gsfc.nasa.gov/cgi/getfile/%s.bz2", f), sprintf("%s.bz2", f), mode = "wb")
 //'   system(sprintf("bunzip2 %s.bz2", f))
-//' } else {
+//' } 
 //'   vdatainfo(f)
-//' }
+//' 
 //' 
 //' }
 // [[Rcpp::export]]
@@ -69,6 +66,7 @@ List vdatainfo(CharacterVector file) {
        * Attach to the current vdata for reading.
        */
        vdata_id = VSattach (file_id, vdata_ref, "r");
+       
        /*
        * Test whether the current vdata is not a storage of an attribute, then
        * obtain and display its information.
@@ -77,20 +75,14 @@ List vdatainfo(CharacterVector file) {
        {
           status_n = VSinquire (vdata_id, &n_records, &interlace_mode, 
                              fieldname_list, &vdata_size, vdata_name);
-         // printf ("%d Vdata %s: - contains %d records\n\tInterlace mode: %s \
-        //          \n\tFields: %s - %d bytes\n\t\n", vdata_ref, vdata_name, n_records,
-        //          interlace_mode == FULL_INTERLACE ? "FULL" : "NONE", 
-        //          fieldname_list, vdata_size );
-                  
           VDataNames[vdata_name] = fieldname_list;
-          //iVDataNames++;
        }
       
        /*
        * Detach from the current vdata.
        */
        status_32 = VSdetach (vdata_id);
-    } /* while */
+    } 
     /*
     * Terminate access to the VS interface and close the HDF file. 
     */
