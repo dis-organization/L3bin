@@ -46,10 +46,6 @@ List initlist() {
   return alist;
 }
 
-
-
-
-
 //' Longitude and latitude from bin number.  
 //'
 //' Generate longitude and latitude coordinates from bin number. 
@@ -78,27 +74,31 @@ List bin2lonlat(IntegerVector bins){
 }
 
 
-
 //' Basic L3 bin files 
 //'
 //' Read from L3 bin. 
 //' @param filename path to L3 bin OC file (HDF4)
 //' @export
 // [[Rcpp::export]]
-List binlist(CharacterVector filename) {
+List binlist(CharacterVector filename, CharacterVector vname) {
   //"/home/mdsumner/Git/L3bin/L3work/S1998001.L3b_DAY_CHL.main";
+  // TODO fix
   std::string fname = Rcpp::as<std::string>(filename);
+  const char * c_filename = fname.c_str();
   
   initbin();
   
-  const char * c_filename = fname.c_str();
   
   /* Open the HDF file. */
   int     numbins = 0, *binnums = NULL;
   int     i;
   int file_id;
   int     vdata_ref, vdata_id,numrecs,pvd_id;
-  char PARAM[] = "chlor_a";
+  // TODO fix
+  std::string vstrname  = Rcpp::as<std::string>(vname);
+  //const char * c_vstrname = vstrname.c_str();
+  const char * PARAM = vstrname.c_str();
+  //char *PARAM[] = new char[vstrname.length()];
   
   
   /* The entire globe has been selected. */
@@ -298,6 +298,8 @@ List binlist(CharacterVector filename) {
     parsum[i] = summ;
     parssq[i] = sum_sq;
     
+ 
+    
 }
 
 
@@ -391,6 +393,128 @@ void initbin(void){
     }
   }
   totbins = basebin[NUMROWS - 1] + numbin[NUMROWS - 1] - 1;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// //@export
+// //[[Rcpp::export]]
+List testvdata(CharacterVector filename) {
+  std::string fname = Rcpp::as<std::string>(filename);
+  const char * c_filename = fname.c_str();
+  
+    int     i;
+  int file_id;
+  int     vdata_ref, vdata_id,numrecs,pvd_id;
+  char PARAM[] = "angstrom";
+  int maxsize = 32767;
+  int ref_array[32767];
+ int nvdatas;
+   /* Set up to read the fields in the parameter-specific Vdata records. */
+  {
+    int len;
+    len = 2*strlen(PARAM) + strlen("_sum,") + strlen("_sum_sq") + 1;
+    param_fields = (char *)malloc(len);
+    if(param_fields == NULL){
+      fprintf(stderr,"-E- %s line %d: Memory allocation failed.\n",
+      __FILE__,__LINE__);
+      return(EXIT_FAILURE);
+    }
+    strcpy(param_fields,PARAM);
+    strcat(param_fields,"_sum,");
+    strcat(param_fields,PARAM);
+    strcat(param_fields,"_sum_sq");
+  }
+  
+
+ 
+ file_id = Hopen(c_filename, DFACC_READ, 0);
+  if(file_id == FAIL){
+    fprintf(stderr,"-E- %s line %d: Hopen(%s,DFACC_READ,0) failed.\n", __FILE__, __LINE__, c_filename);
+    return(EXIT_FAILURE);
+  }
+  
+  /* Initialize the Vdata interface. */
+  if(Vstart(file_id) == FAIL){
+    fprintf(stderr,"-E- %s line %d: Vstart(%d) failed.\n",
+    __FILE__,__LINE__,file_id);
+    return(EXIT_FAILURE);
+  }
+  
+  nvdatas = VSlone(file_id, ref_array, maxsize);
+  if (nvdatas == FAIL) {
+    fprintf(stderr,"-E- %s line %d: VSlone(%s,DFACC_READ,0) failed.\n", __FILE__, __LINE__, c_filename);
+    return(EXIT_FAILURE);
+  }
+  
+  /* Open the parameter-specific Vdata. */
+  vdata_ref = VSfind(file_id, "angstrom");
+  if(vdata_ref == 0){
+    fprintf(stderr,"-E- %s line %d: VSfind(%d,\"%s\") failed.\n",
+    __FILE__,__LINE__,file_id,PARAM);
+    return(EXIT_FAILURE);
+  }
+  
+    // pvd off
+  pvd_id = VSattach(file_id, vdata_ref, "r");
+  if(pvd_id == FAIL){
+    fprintf(stderr,"-E- %s line %d: VSattach(%d,%d,\"r\") failed.\n",
+    __FILE__,__LINE__,file_id,vdata_ref);
+    return(EXIT_FAILURE);
+  }
+  
+  
+//   if (VSgetfields(pvd_id, local_fields) == FAIL )
+//   {
+//       fprintf(stderr,"-E- %s line %d: VSgetfields(%d,%s) failed.\n",
+//    __FILE__,__LINE__,pvd_id,local_fields);
+//    return(EXIT_FAILURE);
+//   }
+   
+    
+    if(VSsetfields(pvd_id,param_fields) == FAIL){
+    fprintf(stderr,"-E- %s line %d: VSsetfields(%d,%s) failed.\n",
+    __FILE__,__LINE__,pvd_id,param_fields);
+    return(EXIT_FAILURE);
+  }
+  
+
+  
+    if(VSdetach(pvd_id) == FAIL){
+    fprintf(stderr,"-E- %s line %d: VSdetach(%d) failed.\n",
+    __FILE__,__LINE__,pvd_id);
+    return(EXIT_FAILURE);
+  }
+
+
+  if(Vend(file_id) == FAIL){
+    fprintf(stderr,"-E- %s line %d: Vend(%d) failed.\n",
+    __FILE__,__LINE__,file_id);
+    return(EXIT_FAILURE);
+  }
+  if(Hclose(file_id) == FAIL){
+    fprintf(stderr,"-E- %s line %d: Hclose(%d) failed.\n",
+    __FILE__,__LINE__,file_id);
+    return(EXIT_FAILURE);
+  }
+  
+  free(param_fields);
+  List wubbadub = List::create();
+  wubbadub["ref_array"] = nvdatas;
+  return wubbadub;
 }
 
 
