@@ -3,7 +3,7 @@
 \alias{binlist}
 \title{Basic L3 bin files}
 \usage{
-binlist(filename)
+binlist(filename, vname)
 }
 \arguments{
 \item{filename}{path to L3 bin OC file (HDF4)}
