@@ -31,9 +31,6 @@ static VOIDP    paramptrs[] = {&summ,&sum_sq};
 void    initbin(void);
 int   binsearch(int bin, int vdata_id, int numrecs);
 
-
-
-
 //' Parameters from initbin. 
 //'
 //' Initbin. 
@@ -41,7 +38,11 @@ int   binsearch(int bin, int vdata_id, int numrecs);
 // [[Rcpp::export]]
 List initlist() {
   initbin();
-  List alist = List::create() ; alist["totbins"] = totbins; alist["NUMROWS"] = NUMROWS;
+  List alist = List::create(); 
+  alist["totbins"] = totbins; 
+  alist["NUMROWS"] = NUMROWS;
+//  alist["basebin"] = basebin;
+//  alist["latbin"] = latbin;
   return alist;
 }
 
@@ -52,8 +53,8 @@ List initlist() {
 // [[Rcpp::export]]
 List bin2lonlat(IntegerVector bins){
   short row;
-    initbin();
-    
+  initbin();
+  
   int bin, ibin;
   int n = bins.size();
   NumericVector clon(n);
@@ -80,32 +81,27 @@ List bin2lonlat(IntegerVector bins){
 //' @export
 // [[Rcpp::export]]
 List binlist(CharacterVector filename, CharacterVector vname) {
-  //"/home/mdsumner/Git/L3bin/L3work/S1998001.L3b_DAY_CHL.main";
-  // TODO fix
+  // file name
   std::string fname = Rcpp::as<std::string>(filename);
   const char * c_filename = fname.c_str();
   
+  // intialize the bin structure
   initbin();
   
-  /* Open the HDF file. */
-  int     numbins = 0, *binnums = NULL;
-  int     i;
-  int file_id;
-  int     vdata_ref, vdata_id,numrecs,pvd_id;
-
+  /* counters */
+  int b, i, jvar, nvar, numrecs, numbins = 0, *binnums = NULL;
+  /* file refs */
+  int file_id, vdata_ref, vdata_id,pvd_id;
   
-  /* The entire globe has been selected. */
-  int b; 
+  /* The entire globe */
   binnums = (int *)realloc(binnums,totbins*sizeof(int));
   if(binnums == NULL){
-    fprintf(stderr,"-E- %s line %d: Memory allocation failed.\n",
-    __FILE__,__LINE__);
+    fprintf(stderr,"-E- %s line %d: Memory allocation failed.\n", __FILE__,__LINE__);
     return(EXIT_FAILURE);
   }
-  for(b = 1; b <= totbins; b++){ binnums[numbins++] = b;
+  for(b = 1; b <= totbins; b++) { 
+    binnums[numbins++] = b;
   }
-  
-  
   
   file_id = Hopen(c_filename, DFACC_READ, 0);
   if(file_id == FAIL){
@@ -142,34 +138,27 @@ List binlist(CharacterVector filename, CharacterVector vname) {
     return(EXIT_FAILURE);
   }
   
+  /* Rcpp structures for shared binlist */
   IntegerVector bin(numrecs);
   IntegerVector nobservations(numrecs);
   IntegerVector nsc(numrecs);
   NumericVector wghts(numrecs);
- // NumericVector time(numrecs);
-
-
-  // this doesn't seem to be necessary?
+  // NumericVector time(numrecs);
+  
   /* Set up to read the fields in the BinList Vdata records. */
   if(VSsetfields(vdata_id,BLIST_FIELDS) == FAIL){
-    fprintf(stderr,"-E- %s line %d: VSsetfields(%d,%s) failed.\n",
-    __FILE__,__LINE__,vdata_id,BLIST_FIELDS);
+    fprintf(stderr,"-E- %s line %d: VSsetfields(%d,%s) failed.\n", __FILE__,__LINE__,vdata_id,BLIST_FIELDS);
     return(EXIT_FAILURE);
   }
-  
-
   
   // separate loops for vdatat_id and pvd_id, because they seek to different places
   for (i = 0; i < numrecs; i++ ) {
     
-    // recno = binsearch(binnums[i],vdata_id,numrecs);
-   // printf("1\n");
     if(VSseek(vdata_id,i) == FAIL){
-      fprintf(stderr,"-E- %s line %d: VSseek(%d,%d) failed.\n",
-      __FILE__,__LINE__,vdata_id,i);
+      fprintf(stderr,"-E- %s line %d: VSseek(%d,%d) failed.\n", __FILE__,__LINE__,vdata_id,i);
       exit(EXIT_FAILURE);
     }
-    //printf("2\n");
+    
     if(VSread(vdata_id,blistrec,1,FULL_INTERLACE) != 1){
       fprintf(stderr,"-E- %s line %d: ",__FILE__,__LINE__);
       fprintf(stderr,"VSread(%d,blistrec,1,FULL_INTERLACE) failed.\n",
@@ -186,51 +175,40 @@ List binlist(CharacterVector filename, CharacterVector vname) {
       exit(EXIT_FAILURE);
     }
     
-
-  bin[i] = bin_num;
+    // populate the Rcpp vectors
+    bin[i] = bin_num;
     nobservations[i] = nobs;
     nsc[i] = nscenes;
     wghts[i] = weights;
-   // time[i] = time_rec;
-       
+    // time[i] = time_rec;   
   }   
-
+  
+  // collect Rcpp vectors in a list
   List z  = List::create() ;
   z["bin_num"] = bin;
   z["nobs"] = nobservations;
   z["nscenes"] = nsc;
   z["weights"] = wghts;
-
-
- 
-
-  // TODO fix
-  int jvar; 
-  int nvar = vname.size();
-  for (jvar = 0; jvar < nvar; jvar++) {
-     NumericVector parsum(numrecs);
-  NumericVector parssq(numrecs);
   
+  // loop over all parameters, get the sum/ssq for each
+  nvar = vname.size();
+  for (jvar = 0; jvar < nvar; jvar++) {
+    // reset the sum/ssq Rcpp vectors each time
+    NumericVector parsum(numrecs);
+    NumericVector parssq(numrecs);
+    
     std::string vstrname  = Rcpp::as<std::string>(vname[jvar]);
-    //const char * c_vstrname = vstrname.c_str();
     const char * PARAM = vstrname.c_str();
-    //char *PARAM[] = new char[vstrname.length()];
     
     /* Open the parameter-specific Vdata. */
     vdata_ref = VSfind(file_id,PARAM);
     if(vdata_ref == 0){
-      fprintf(stderr,"-E- %s line %d: VSfind(%d,\"%s\") failed.\n",
-      __FILE__,__LINE__,file_id,PARAM);
+      fprintf(stderr,"-E- %s line %d: VSfind(%d,\"%s\") failed.\n", __FILE__,__LINE__,file_id,PARAM);
       return(EXIT_FAILURE);
     }
-    
-    
-    
-    // pvd off
     pvd_id = VSattach(file_id, vdata_ref, "r");
     if(pvd_id == FAIL){
-      fprintf(stderr,"-E- %s line %d: VSattach(%d,%d,\"r\") failed.\n",
-      __FILE__,__LINE__,file_id,vdata_ref);
+      fprintf(stderr,"-E- %s line %d: VSattach(%d,%d,\"r\") failed.\n", __FILE__,__LINE__,file_id,vdata_ref);
       return(EXIT_FAILURE);
     }
     /* Set up to read the fields in the parameter-specific Vdata records. */
@@ -239,8 +217,7 @@ List binlist(CharacterVector filename, CharacterVector vname) {
       len = 2*strlen(PARAM) + strlen("_sum,") + strlen("_sum_sq") + 1;
       param_fields = (char *)malloc(len);
       if(param_fields == NULL){
-        fprintf(stderr,"-E- %s line %d: Memory allocation failed.\n",
-        __FILE__,__LINE__);
+        fprintf(stderr,"-E- %s line %d: Memory allocation failed.\n", __FILE__,__LINE__);
         return(EXIT_FAILURE);
       }
       strcpy(param_fields,PARAM);
@@ -249,25 +226,19 @@ List binlist(CharacterVector filename, CharacterVector vname) {
       strcat(param_fields,"_sum_sq");
     }
     
-    
     if(VSsetfields(pvd_id,param_fields) == FAIL){
-      fprintf(stderr,"-E- %s line %d: VSsetfields(%d,%s) failed.\n",
-      __FILE__,__LINE__,pvd_id,param_fields);
+      fprintf(stderr,"-E- %s line %d: VSsetfields(%d,%s) failed.\n", __FILE__,__LINE__,pvd_id,param_fields);
       return(EXIT_FAILURE);
     }
     
-    
-   for (i = 0; i < numrecs; i++ ) {
-     
-      // pvd off
+    for (i = 0; i < numrecs; i++ ) {     
       /*
       Read the sum and sum-of-squares for the
       the specified parameter for this bin.
       */
       
       if(VSseek(pvd_id,i) == FAIL){
-        fprintf(stderr,"-E- %s line %d: VSseek(%d,%d) failed.\n", __FILE__,__LINE__,pvd_id,i);
-        
+        fprintf(stderr,"-E- %s line %d: VSseek(%d,%d) failed.\n", __FILE__,__LINE__,pvd_id,i);        
         return(EXIT_FAILURE);
       }
       if(VSread(pvd_id,paramrec,1,FULL_INTERLACE) != 1){
@@ -285,65 +256,48 @@ List binlist(CharacterVector filename, CharacterVector vname) {
         return(EXIT_FAILURE);
       }
       
-  
-  
-     // pvd off
       parsum[i] = summ;
       parssq[i] = sum_sq;
       
-   }
-  
+    }
+    // sub-list for each parameter (could be done better)
+    
     List z2  = List::create() ;
-   
     z2["sum"] = parsum;
-    z2["ssq"] = parssq;
+    z2["ssq"] = parssq; 
+    z[vstrname] = z2;
     
-  z[vstrname] = z2;
-  
-  
-    // pvd off
-  if(VSdetach(pvd_id) == FAIL){
-    fprintf(stderr,"-E- %s line %d: VSdetach(%d) failed.\n",
-    __FILE__,__LINE__,pvd_id);
-    return(EXIT_FAILURE);
-  
-  }
-
-
+    if(VSdetach(pvd_id) == FAIL){
+      fprintf(stderr,"-E- %s line %d: VSdetach(%d) failed.\n", __FILE__,__LINE__,pvd_id);
+      return(EXIT_FAILURE);
+    }
     
   }
   
-
+  // finish up, close the file
   if(VSdetach(vdata_id) == FAIL){
-    fprintf(stderr,"-E- %s line %d: VSdetach(%d) failed.\n",
-    __FILE__,__LINE__,vdata_id);
+    fprintf(stderr,"-E- %s line %d: VSdetach(%d) failed.\n", __FILE__,__LINE__,vdata_id);
     return(EXIT_FAILURE);
   }
-  
   if(Vend(file_id) == FAIL){
-    fprintf(stderr,"-E- %s line %d: Vend(%d) failed.\n",
-    __FILE__,__LINE__,file_id);
+    fprintf(stderr,"-E- %s line %d: Vend(%d) failed.\n", __FILE__,__LINE__,file_id);
     return(EXIT_FAILURE);
   }
   if(Hclose(file_id) == FAIL){
-    fprintf(stderr,"-E- %s line %d: Hclose(%d) failed.\n",
-    __FILE__,__LINE__,file_id);
+    fprintf(stderr,"-E- %s line %d: Hclose(%d) failed.\n", __FILE__,__LINE__,file_id);
     return(EXIT_FAILURE);
   }
   
   free(param_fields);
-  free(binnums);
-  
-  
-
-  return z ;
+  free(binnums);  
+  return z;
 }
 
- 
- char *bitstr16(int16 n){
+
+char *bitstr16(int16 n){
   static char   str[17];
   int       i;
-
+  
   str[16]=0;
   for(i = 0; i < 16; i++){
     if(n & (1 << i)) str[i] = '1';
@@ -355,7 +309,7 @@ List binlist(CharacterVector filename, CharacterVector vname) {
 char *bitstr32(int32 n){
   static char   str[33];
   int       i;
-
+  
   str[32] = 0;
   for(i = 0; i < 32; i++){
     if(n & (1 << i)) str[i] = '1';
@@ -379,7 +333,7 @@ NASA Goddard Space Flight Center, Greenbelt, Maryland
 
 void initbin(void){
   int   row;
-
+  
   basebin[0] = 1;
   for(row=0; row<NUMROWS; row++){
     latbin[row] = ((row + 0.5)*180.0/NUMROWS) - 90.0;
@@ -391,129 +345,4 @@ void initbin(void){
   }
   totbins = basebin[NUMROWS - 1] + numbin[NUMROWS - 1] - 1;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// //@export
-// //[[Rcpp::export]]
-List testvdata(CharacterVector filename) {
-  std::string fname = Rcpp::as<std::string>(filename);
-  const char * c_filename = fname.c_str();
-  
-    int     i;
-  int file_id;
-  int     vdata_ref, vdata_id,numrecs,pvd_id;
-  char PARAM[] = "angstrom";
-  int maxsize = 32767;
-  int ref_array[32767];
- int nvdatas;
-   /* Set up to read the fields in the parameter-specific Vdata records. */
-  {
-    int len;
-    len = 2*strlen(PARAM) + strlen("_sum,") + strlen("_sum_sq") + 1;
-    param_fields = (char *)malloc(len);
-    if(param_fields == NULL){
-      fprintf(stderr,"-E- %s line %d: Memory allocation failed.\n",
-      __FILE__,__LINE__);
-      return(EXIT_FAILURE);
-    }
-    strcpy(param_fields,PARAM);
-    strcat(param_fields,"_sum,");
-    strcat(param_fields,PARAM);
-    strcat(param_fields,"_sum_sq");
-  }
-  
-
- 
- file_id = Hopen(c_filename, DFACC_READ, 0);
-  if(file_id == FAIL){
-    fprintf(stderr,"-E- %s line %d: Hopen(%s,DFACC_READ,0) failed.\n", __FILE__, __LINE__, c_filename);
-    return(EXIT_FAILURE);
-  }
-  
-  /* Initialize the Vdata interface. */
-  if(Vstart(file_id) == FAIL){
-    fprintf(stderr,"-E- %s line %d: Vstart(%d) failed.\n",
-    __FILE__,__LINE__,file_id);
-    return(EXIT_FAILURE);
-  }
-  
-  nvdatas = VSlone(file_id, ref_array, maxsize);
-  if (nvdatas == FAIL) {
-    fprintf(stderr,"-E- %s line %d: VSlone(%s,DFACC_READ,0) failed.\n", __FILE__, __LINE__, c_filename);
-    return(EXIT_FAILURE);
-  }
-  
-  /* Open the parameter-specific Vdata. */
-  vdata_ref = VSfind(file_id, "angstrom");
-  if(vdata_ref == 0){
-    fprintf(stderr,"-E- %s line %d: VSfind(%d,\"%s\") failed.\n",
-    __FILE__,__LINE__,file_id,PARAM);
-    return(EXIT_FAILURE);
-  }
-  
-    // pvd off
-  pvd_id = VSattach(file_id, vdata_ref, "r");
-  if(pvd_id == FAIL){
-    fprintf(stderr,"-E- %s line %d: VSattach(%d,%d,\"r\") failed.\n",
-    __FILE__,__LINE__,file_id,vdata_ref);
-    return(EXIT_FAILURE);
-  }
-  
-  
-//   if (VSgetfields(pvd_id, local_fields) == FAIL )
-//   {
-//       fprintf(stderr,"-E- %s line %d: VSgetfields(%d,%s) failed.\n",
-//    __FILE__,__LINE__,pvd_id,local_fields);
-//    return(EXIT_FAILURE);
-//   }
-   
-    
-    if(VSsetfields(pvd_id,param_fields) == FAIL){
-    fprintf(stderr,"-E- %s line %d: VSsetfields(%d,%s) failed.\n",
-    __FILE__,__LINE__,pvd_id,param_fields);
-    return(EXIT_FAILURE);
-  }
-  
-
-  
-    if(VSdetach(pvd_id) == FAIL){
-    fprintf(stderr,"-E- %s line %d: VSdetach(%d) failed.\n",
-    __FILE__,__LINE__,pvd_id);
-    return(EXIT_FAILURE);
-  }
-
-
-  if(Vend(file_id) == FAIL){
-    fprintf(stderr,"-E- %s line %d: Vend(%d) failed.\n",
-    __FILE__,__LINE__,file_id);
-    return(EXIT_FAILURE);
-  }
-  if(Hclose(file_id) == FAIL){
-    fprintf(stderr,"-E- %s line %d: Hclose(%d) failed.\n",
-    __FILE__,__LINE__,file_id);
-    return(EXIT_FAILURE);
-  }
-  
-  free(param_fields);
-  List wubbadub = List::create();
-  wubbadub["ref_array"] = nvdatas;
-  return wubbadub;
-}
-
-
-
 
