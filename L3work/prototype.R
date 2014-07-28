@@ -1,3 +1,133 @@
+bchlfile <- "/rdsi/PRIVATE/oceandata.sci.gsfc.nasa.gov/SeaWiFS/L3BIN/1998/001/S19980011998031.L3b_MO_CHL.main"
+brrsfile <- "/rdsi/PRIVATE/oceandata.sci.gsfc.nasa.gov/SeaWiFS/L3BIN/1998/001/S19980011998031.L3b_MO_RRS.main"
+ocfile <- "/rdsi/PRIVATE/oceandata.sci.gsfc.nasa.gov/SeaWiFS/Mapped/Monthly/9km/chlor/S19980011998031.L3m_MO_CHL_chlor_a_9km"
+jfile <- "/rdsi/PRIVATE/chl/johnson/seawifs/monthly/S19980011998031.L3m_MO_SO_Chl_9km.Johnson_SO_Chl.nc"
+
+
+library(L3bin)
+
+##file.copy(bchlfile, basename(bchlfile))
+##file.copy(brrsfile, basename(brrsfile))
+
+bchlfile <- "S19980011998031.L3b_MO_CHL.main.bz2"
+brrsfile <- "S19980011998031.L3b_MO_RRS.main.bz2"
+
+b <- "http://oceandata.sci.gsfc.nasa.gov/cgi/getfile"
+
+download.file(file.path(b, bchlfile), bchlfile, mode = "wb")
+download.file(file.path(b, brrsfile), brrsfile, mode = "wb")
+
+system(sprintf("bunzip2 %s", bchlfile))
+system(sprintf("bunzip2 %s", brrsfile))
+
+bchlf <- gsub(".bz2", "", bchlfile)
+brrsf <- gsub(".bz2", "", brrsfile)
+
+
+bchl <- readL3(basename(bchlf))
+brrs <- readL3(basename(brrsf)
+               
+               
+               save(bchl, brrs, file = "rawMO.Rdata")
+               
+               
+               library(raadtools)
+               oc <- readchla("1998-01-15", time.resolution = "monthly", product = "oceancolor")
+               jc <- readchla("1998-01-15", time.resolution = "monthly", product = "johnson")
+               
+               # 
+               bin2lonlat <- function(bin) {
+                 row = NUMROWS - 1;
+                 fint <- findInterval(bin, basebin)
+                 clat = latbin[fint];
+                 clon = 360.0*(bin - basebin[fint] + 0.5)/numbin[fint] - 180.0;
+                 cbind(clon, clat)
+               }
+               
+               ll <- bin2lonlat(bchl$bin_num)
+               ##ll <- cbind(ll$x, ll$y)
+               
+               
+               
+               
+               e <- new("Extent"
+                        , xmin = -80.1248170756666
+                        , xmax = -58.1728095345417
+                        , ymin = -61.5656963058103
+                        , ymax = -40.5821596856174
+               )
+               new("Extent"
+                   , xmin = 164.521045068331
+                   , xmax = 175.748592647521
+                   , ymin = -79.9102234492261
+                   , ymax = -69.4311790419819
+               )
+               
+               
+               
+               swratio <- function(x) {
+                 log10(pmax((x$Rrs_443_sum / x$Rrs_555_sum), 
+                            (x$Rrs_490_sum / x$Rrs_555_sum), 
+                            (x$Rrs_510_sum / x$Rrs_555_sum) 
+                 ) )
+               }
+               
+               swchl <- function(x, johnson = FALSE) {
+                 swr <- swratio(x) 
+                 if (johnson) {
+                   (10 ^ (0.6736 - 2.0714 * swr - 0.4939* swr^2 + 0.4756 * swr^3))
+                 } else {
+                   (10 ^ (0.3272 - 2.9940 * swr + 2.7218 * swr^2 - 1.2259 * swr^3 - 0.5683 * swr^4))
+                 }
+               }
+               
+               asub <- ll[,1] >= xmin(e) & ll[,1] <= xmax(e) & ll[,2] >= ymin(e) & ll[,2] <= ymax(e)
+               bb <- bin2bounds(brrs$bin_num[asub])
+               
+               xy <- ll[asub, ]
+               ocbin <- swchl(brrs)[asub]
+               jbin <- swchl(brrs, johnson = TRUE)[asub]
+               
+               
+               par(mfrow = c(2,2))
+               plot(crop(oc, e), col = pal$cols, breaks = pal$breaks, asp = cos(-50/pi/180), legend = FALSE)
+               plot(crop(oc, e), col = "white", breaks = pal$breaks, asp = cos(-50/pi/180), legend = FALSE)
+               ##plot(xy, type = "n", asp = cos(-50/pi/180))
+               rect(bb$east, bb$south, bb$west, bb$north, col = chl.pal(ocbin), border = NA)
+               
+               plot(crop(jc, e), col = pal$cols, breaks = pal$breaks, asp = cos(-50/pi/180), legend = FALSE)
+               plot(crop(oc, e), col = "white", breaks = pal$breaks, asp = cos(-50/pi/180), legend = FALSE)
+               
+               ##plot(xy, type = "n", asp = cos(-50/pi/180))
+               rect(bb$east, bb$south, bb$west, bb$north, col = chl.pal(jbin), border = NA)
+               
+               
+               
+               
+               
+               
+               
+               
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## 
 ##hdir <- "/rdsi/PRIVATE/oceandata.sci.gsfc.nasa.gov/SeaWiFS/L3BIN/1998/001"
 ##f1 <- "http://oceandata.sci.gsfc.nasa.gov/cgi/getfile/S19980011998008.L3b_8D_CHL.main.bz2"
@@ -7,14 +137,14 @@
 ## prototype L3 re-binning
 
 ##f = "/rdsi/PRIVATE/oceandata.sci.gsfc.nasa.gov/SeaWiFS/L3BIN/1998/001/S19980011998008.L3b_8D_CHL.main"
-##f = "/rdsi/PRIVATE/oceandata.sci.gsfc.nasa.gov/SeaWiFS/L3BIN/1998/001/S19980011998031.L3b_MO_CHL.main"
+f = "/rdsi/PRIVATE/oceandata.sci.gsfc.nasa.gov/SeaWiFS/L3BIN/1998/001/S19980011998031.L3b_MO_CHL.main"
 
-f = "/rdsi/PRIVATE/oceandata.sci.gsfc.nasa.gov/SeaWiFS/L3BIN/1998/001/S19980011998008.L3b_8D_CHL.main"
+##f = "/rdsi/PRIVATE/oceandata.sci.gsfc.nasa.gov/SeaWiFS/L3BIN/1998/001/S19980011998008.L3b_8D_CHL.main"
 library(raadtools)
 ##ochl <- readchla("1998-01-01", product = "oceancolor", time.resolution = "monthly")
 ##ochl <- raster("/rdsi/PRIVATE/oceandata.sci.gsfc.nasa.gov/SeaWiFS/Mapped/Monthly/9km/chlor/S19980011998031.L3m_MO_CHL_chlor_a_9km")
 ##ochl <- raster("/rdsi/PRIVATE/oceandata.sci.gsfc.nasa.gov/SeaWiFS/Mapped/Monthly/9km/chlor/S19980011998008.L3m_8D_CHL_chlor_a_9km")
-ochl <- readchla("1998-01-01", product = "oceancolor", time.resolution = "weekly")
+ochl <- readchla("1998-01-01", product = "oceancolor", time.resolution = "monthly")
 extent(ochl) <- extent(-180, 180, -90, 90)
 projection(ochl) <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0"
 ochl[ochl <= 0] <- NA
@@ -49,9 +179,11 @@ cr2_rbin <- crop(rbin, e2, snap = "out")
 
 latlon2bin <- function(x) {
   row <- findInterval(x[,2], init$latbin)
+  row[row < 1] <- 1
   col = trunc((x[,1] + 180.0)*init$numbin[row]/360.0);
   ##if(col >= numbin[row]) col = numbin[row] - 1;
   col <- ifelse(col > init$numbin[row], init$numbin[row] - 1, col)
+  col[col < 1] <- 1
   ##col[col >= numbin[row] <- numbin[row] - 1;
   init$basebin[row] + col;
   
@@ -87,7 +219,22 @@ rect(bb2$east, bb2$south, bb2$west, bb2$north, col = chl.pal((rawbins$sum/rawbin
 ##par(op)
 dev.off()
 
+
+
+## wrong, this must aggregate the bins first 
+rebin <- readice()
+res(rebin) <- res(rebin) * 12
+rebin[] <- 0
+recells <- extract(rebin, ll, cellnumbers = TRUE)
+
+rebin[unique(recells[,1])] <- tapply((rawbins$sum/rawbins$weight), recells[,1], FUN = mean)
+
+plot(rebin, col = pal$cols, breaks = pal$breaks, legend = FALSE)
+
+
+
 rebin <- readsst()
+res(rebin) <- 2.5
 rebin[] <- 0
 library(rgdal)
 ##recells <- extract(rebin, project(ll, projection(rebin)), cellnumbers = TRUE)
@@ -102,11 +249,29 @@ plot(rebin, col = pal$cols, breaks = pal$breaks)
 
 
 
-## FINAL REBIN to match original
-rebin <- ochl
+
+rebin <- readice()
+res(rebin) <- res(rebin) * 2.8
 rebin[] <- 0
-binid <- latlon2bin(coordinates(rebin))
+
+rebin <- projectExtent(crop(ochl, extent(-180, 180, -90, 30)), projection(readice()))
+
+ res(rebin) <- c(1e5)
+rebin[] <- 0
+
+recells <- extract(rebin, project(ll, projection(rebin)), cellnumbers = TRUE)
+
+rebin[unique(recells[,1])] <- tapply((rawbins$sum/rawbins$weight), recells[,1], FUN = mean)
+
+plot(rebin, col = pal$cols, breaks = pal$breaks, legend = FALSE)
+
+ll <-  coordinates(rebin)
+ll <- project(ll, projection(rebin), inv = TRUE)
+binid <- latlon2bin(ll)
+
 rebin[] <- rawbins$sum[match(binid, rawbins$bin_num)] / rawbins$weights[match(binid, rawbins$bin_num)]
+
+plot(rebin, col = pal$cols, breaks = pal$breaks)
 
 
 
