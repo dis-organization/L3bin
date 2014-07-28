@@ -35,13 +35,44 @@ readL3 <- function(x, vname) {
 #   }
 # }
 
+
 swratio <- function(x) {
-  log10(pmax((x$Rrs_443_sum / x$Rrs_555_sum), 
-             (x$Rrs_490_sum / x$Rrs_555_sum), 
-             (x$Rrs_510_sum / x$Rrs_555_sum) 
+  log10(pmax((x$Rrs_443$sum / x$Rrs_555$sum), 
+             (x$Rrs_490$sum / x$Rrs_555$sum), 
+             (x$Rrs_510$sum / x$Rrs_555$sum) 
   ) )
 }
 
+#' Estimate chlorophyll-a from SeaWiFS 
+#' 
+#' Estimate chlorophyll-a from SeaWiFS Remote Sensing Reflectance wavelengths. Default 
+#' uses the original SeaWiFS algorithm or optionally \code{johnson} to use the Johnson algorithm 
+#' for the Southern Ocean. 
+#' @examples
+#' \dontrun{
+#' f <- "S1998001.L3b_DAY_RRS.main"
+#' x <- readL3(f)
+#' asub <- x$bin_num < initlist()$totbins / 2
+#' ll <- bin2lonlat(x$bin_num[asub])
+#' sw <- swchl(x)[asub]
+#' js <- swchl(x, johnson = TRUE)[asub]
+#' par(mfrow = c(2,1))
+#' plot(ll, col = raadtools::chl.pal(sw), pch = ".")
+#' plot(ll, col = raadtools::chl.pal(js), pch = ".")
+#' 
+#' ## setup a polar raster
+#' require(raster)
+#' require(rgdal)
+#' prj <- "+proj=laea +lat_0=-90 +lon_0=147 +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0"
+#' p <- project(cbind(ll[[1]], ll[[2]]), prj)
+#' r <- raster(extent(p), crs = prj, res = c(72000, 72000))
+#' sr <- rasterize(p, r, field = sw, fun = mean)
+#' jr <- rasterize(p, r, field = js, fun = mean)
+#' plot(brick(sr, jr), col = pal$cols, breaks = pal$breaks, legend = FALSE)
+#' }
+#' @param x list object with Remote Sensing Reflectance wavelengths (see Details)
+#' @param johnson use the Johnson et al. (2013) algorithm (FALSE by default)
+#' @export
 swchl <- function(x, johnson = FALSE) {
   swr <- swratio(x) 
   if (johnson) {

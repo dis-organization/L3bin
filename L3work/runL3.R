@@ -1,12 +1,4 @@
 library(L3bin)
-
-
-
-f <- "/rdsi/PRIVATE/oceandata.sci.gsfc.nasa.gov/SeaWiFS/L3BIN/1998/001/S1998001.L3b_DAY_RRS.main"
-x <- binlist(f)
-
-
-
 ##x <- binlist("/home/mdsumner/Git/L3bin/L3work/S1998001.L3b_DAY_CHL.main")
 
 ##x <- binlist("/rdsi/PRIVATE/oceandata.sci.gsfc.nasa.gov/SeaWiFS/L3BIN/1998/001/S19980011998031.L3b_MO_CHL.main")
@@ -73,7 +65,7 @@ library(raadtools)
 isub <- sample(nrow(ll), 1e4)
 ##plot(ll[isub, ], col = chl.pal(d$sum[isub]/d$weights[isub]), pch = ".")
 
-NUMROWS <- 2160
+NUMROWS <- 9
 latbin <- (((seq(NUMROWS) - 1) + 0.5) * 180 / NUMROWS ) - 90
 numbin <- as.integer(2 * NUMROWS * cos(latbin * pi/180) + 0.5)
 basebin <- cumsum(c(1L, numbin[-length(numbin)]))
@@ -99,14 +91,14 @@ bin2bounds <- function(bin) {
 }
 
 l <- lapply(1:totbins, bin2bounds)
-rect2P <- function(x) Polygon(as.matrix(expand.grid(x[c(1, 3)], x[c(2, 4)]))[c(1, 3, 4, 2, 1), ])
+plot(bin2lonlat(1:totbins))
+zap <- lapply(l, function(x) rect(x[1], x[2], x[3], x[4]))
+rect2mat <- function(x) as.matrix(expand.grid(x[c(1, 3)], x[c(2, 4)]))
 
+zap <- lapply(l, function(x) list(Polygon(rect2mat(x)[c(1, 3, 4, 2, 1), ])))
+ps <- SpatialPolygonsDataFrame(SpatialPolygons(lapply(seq(length = length(zap)), function(x) Polygons(zap[[x]], as.character(x))), proj4string = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0")), data.frame(x = 1:length(zap)))
 
-##zap <- lapply(l, function(x) rect(x[1], x[2], x[3], x[4]))
-zap <- lapply(l, function(x) rect2P(x))
-ps <- SpatialPolygonsDataFrame(SpatialPolygons(lapply(seq(along = zap), function(x) Polygons(zap[x], as.character(x))), proj4string = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0")), data.frame(x = 1:length(zap)))
-
-
-       
-
+plot(spTransform(ps, CRS("+proj=sinu")))
+pxy <- project(bin2lonlat(1:totbins), "+proj=sinu")
+points(pxy)
 
