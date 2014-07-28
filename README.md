@@ -13,6 +13,10 @@ http://oceancolor.gsfc.nasa.gov/SeaWiFS/TECH_REPORTS/PreLPDF/PreLVol32.pdf
 
 Package is built using roxygen2 and Rcpp. Only tested on Linux for now - help welcome to port to Windows. 
 
+Limitations
+====
+The SeaWiFS and MODIS bins of 2160 rows are assumed, extracting lonlat from CZCS does not yet work. 
+
 Basic usage
 ====
 
@@ -42,7 +46,8 @@ TODO
 ====
 - Read of multiple variables is inefficient, need to set up output vectors dynamically and only loop over bins once. 
 - Extend capacity to deal with bins spatially. 
-
+- Generalize bin definition for other sensors. 
+- 
 Dependencies
 ====
 
