@@ -18,6 +18,7 @@ Basic usage
 
 Get a Level-3 bin file  (this one is 15 Mb) of ocean colour, and read all bins. 
 
+```{r}
 f <- "http://oceandata.sci.gsfc.nasa.gov/cgi/getfile/A2014208.L3b_DAY_KD490.main.bz2"
 download.file(f, basename(f), mode = "wb")
 library(L3bin)
@@ -31,9 +32,11 @@ List of 5
  $ Kd_490 :List of 2
   ..$ sum: num [1:1506363] 0.0414 0.0464 0.0595 0.0809 0.0564 ...
   ..$ ssq: num [1:1506363] 0.00171 0.00215 0.00251 0.00331 0.00225 ...
-  
-Default behaviour is to read both sum/ssq of *all* variables. You can limit to just some variables with the *vname* argument. (This can
-be important for the RRS files which contain many Remote Sensing Reflectance variables. 
+
+xy <- bin2lonlat(x$bin_num)
+```
+
+Default behaviour is to read both sum/ssq of *all* variables. You can limit to just some variables with the *vname* argument. (This can be important for the RRS files which contain many Remote Sensing Reflectance variables. 
 
 TODO
 ====
@@ -62,6 +65,7 @@ you only need HDF4 in your system.
 
 http://scigeo.org/articles/howto-install-latest-geospatial-software-on-linux.html
 
+```{bash}
 ## dependencies (on CentOS)
 ## sudo yum install libjpeg-devel bison flex ## ~3Mb
 
@@ -103,5 +107,5 @@ make installcheck
 export LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
 sudo ldconfig
 
-
+```
 
