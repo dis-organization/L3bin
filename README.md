@@ -52,10 +52,14 @@ You'll need at least
 
 - command line access, e.g. 
 
-   system(" hdp dumpvd")
+```{r} 
+system(" hdp dumpvd")
+```
 
 - access to the HDF4 source, e.g. 
+```{bash}
 #include "hdf.h"
+```
 
 
 Build notes for HDF4
