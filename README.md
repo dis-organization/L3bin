@@ -49,6 +49,8 @@ TODO
 - Generalize bin definition for other sensors, for full-global sensors this is as simple as detecting the right NUMROWS from the BinIndex - but might require other subsets
 - Ability to read sum and/or ssq for individual variables. 
 - Distinction between grid index data and variables without hardcoded names. 
+- Abstract away the need for explicit decompressing of the file. 
+- Build in a "getfile" feature to populate local repository. 
 - Extend capacity to deal with bins spatially, including
 -- aggregation to larger bins
 -- indexing for arbitrary binning to raster or polygon
