@@ -17,7 +17,6 @@ static VOIDP    bufptrs[] = {
   &bin_num,&nobs,&nscenes,&time_rec,&weights,&sel_cat,&flags_set
 };
 
-
 static int    basebin[NUMROWS];
 static short    numbin[NUMROWS];
 static double  latbin[NUMROWS];
@@ -88,18 +87,12 @@ List binlist(CharacterVector filename, CharacterVector vname) {
   
   initbin();
   
-  
   /* Open the HDF file. */
   int     numbins = 0, *binnums = NULL;
   int     i;
   int file_id;
   int     vdata_ref, vdata_id,numrecs,pvd_id;
-  // TODO fix
-  std::string vstrname  = Rcpp::as<std::string>(vname);
-  //const char * c_vstrname = vstrname.c_str();
-  const char * PARAM = vstrname.c_str();
-  //char *PARAM[] = new char[vstrname.length()];
-  
+
   
   /* The entire globe has been selected. */
   int b; 
@@ -149,30 +142,12 @@ List binlist(CharacterVector filename, CharacterVector vname) {
     return(EXIT_FAILURE);
   }
   
-//      uint bin_num ;
-//      short nobs ;
-//      short nscenes ;
-//      float weights ;
-//      float time_rec ;
-//    }; // binListType
-//    compound binDataType {
-//      float sum ;
-//      float sum_squared ;
-//    }; // binDataType
-//    compound binIndexType {
-//      uint start_num ;
-//      uint begin ;
-//      uint extent ;
-//      uint max ;
-
   IntegerVector bin(numrecs);
   IntegerVector nobservations(numrecs);
   IntegerVector nsc(numrecs);
   NumericVector wghts(numrecs);
  // NumericVector time(numrecs);
-  NumericVector parsum(numrecs);
-  NumericVector parssq(numrecs);
-  
+
 
   // this doesn't seem to be necessary?
   /* Set up to read the fields in the BinList Vdata records. */
@@ -182,50 +157,7 @@ List binlist(CharacterVector filename, CharacterVector vname) {
     return(EXIT_FAILURE);
   }
   
-  /* Open the parameter-specific Vdata. */
-  vdata_ref = VSfind(file_id,PARAM);
-  if(vdata_ref == 0){
-    fprintf(stderr,"-E- %s line %d: VSfind(%d,\"%s\") failed.\n",
-    __FILE__,__LINE__,file_id,PARAM);
-    return(EXIT_FAILURE);
-  }
-  
-  
-  
-  // pvd off
-  pvd_id = VSattach(file_id, vdata_ref, "r");
-  if(pvd_id == FAIL){
-    fprintf(stderr,"-E- %s line %d: VSattach(%d,%d,\"r\") failed.\n",
-    __FILE__,__LINE__,file_id,vdata_ref);
-    return(EXIT_FAILURE);
-  }
-  /* Set up to read the fields in the parameter-specific Vdata records. */
-  {
-    int len;
-    len = 2*strlen(PARAM) + strlen("_sum,") + strlen("_sum_sq") + 1;
-    param_fields = (char *)malloc(len);
-    if(param_fields == NULL){
-      fprintf(stderr,"-E- %s line %d: Memory allocation failed.\n",
-      __FILE__,__LINE__);
-      return(EXIT_FAILURE);
-    }
-    strcpy(param_fields,PARAM);
-    strcat(param_fields,"_sum,");
-    strcat(param_fields,PARAM);
-    strcat(param_fields,"_sum_sq");
-  }
-  
-  
-  if(VSsetfields(pvd_id,param_fields) == FAIL){
-    fprintf(stderr,"-E- %s line %d: VSsetfields(%d,%s) failed.\n",
-    __FILE__,__LINE__,pvd_id,param_fields);
-    return(EXIT_FAILURE);
-  }
-  
-  
-  // int   recno;
-  
-  
+
   
   // separate loops for vdatat_id and pvd_id, because they seek to different places
   for (i = 0; i < numrecs; i++ ) {
@@ -263,59 +195,131 @@ List binlist(CharacterVector filename, CharacterVector vname) {
        
   }   
 
-
- for (i = 0; i < numrecs; i++ ) {
-   
-    // pvd off
-    /*
-    Read the sum and sum-of-squares for the
-    the specified parameter for this bin.
-    */
-    
-    if(VSseek(pvd_id,i) == FAIL){
-      fprintf(stderr,"-E- %s line %d: VSseek(%d,%d) failed.\n", __FILE__,__LINE__,pvd_id,i);
-      
-      return(EXIT_FAILURE);
-    }
-    if(VSread(pvd_id,paramrec,1,FULL_INTERLACE) != 1){
-      fprintf(stderr,"-E- %s line %d: ",__FILE__,__LINE__);
-      fprintf(stderr,"VSread(%d,paramrec,1,FULL_INTERLACE) failed.\n", pvd_id);
-      return(EXIT_FAILURE);
-    }
-    /*
-    VSfpack() sets the global sum and sum_sq variables
-    via the paramptrs pointer array.
-    */
-    if(VSfpack(pvd_id,_HDF_VSUNPACK,param_fields,paramrec,PREC_SIZE,1,NULL,paramptrs)   == FAIL){
-      fprintf(stderr,"-E- %s line %d: ",__FILE__,__LINE__);
-      fprintf(stderr,"VSfpack(%d, ...) failed.\n", pvd_id);
-      return(EXIT_FAILURE);
-    }
-    
+  List z  = List::create() ;
+  z["bin_num"] = bin;
+  z["nobs"] = nobservations;
+  z["nscenes"] = nsc;
+  z["weights"] = wghts;
 
 
-   // pvd off
-    parsum[i] = summ;
-    parssq[i] = sum_sq;
-    
  
+
+  // TODO fix
+  int jvar; 
+  int nvar = vname.size();
+  for (jvar = 0; jvar < nvar; jvar++) {
+     NumericVector parsum(numrecs);
+  NumericVector parssq(numrecs);
+  
+    std::string vstrname  = Rcpp::as<std::string>(vname[jvar]);
+    //const char * c_vstrname = vstrname.c_str();
+    const char * PARAM = vstrname.c_str();
+    //char *PARAM[] = new char[vstrname.length()];
     
-}
-
-
-// pvd off
+    /* Open the parameter-specific Vdata. */
+    vdata_ref = VSfind(file_id,PARAM);
+    if(vdata_ref == 0){
+      fprintf(stderr,"-E- %s line %d: VSfind(%d,\"%s\") failed.\n",
+      __FILE__,__LINE__,file_id,PARAM);
+      return(EXIT_FAILURE);
+    }
+    
+    
+    
+    // pvd off
+    pvd_id = VSattach(file_id, vdata_ref, "r");
+    if(pvd_id == FAIL){
+      fprintf(stderr,"-E- %s line %d: VSattach(%d,%d,\"r\") failed.\n",
+      __FILE__,__LINE__,file_id,vdata_ref);
+      return(EXIT_FAILURE);
+    }
+    /* Set up to read the fields in the parameter-specific Vdata records. */
+    {
+      int len;
+      len = 2*strlen(PARAM) + strlen("_sum,") + strlen("_sum_sq") + 1;
+      param_fields = (char *)malloc(len);
+      if(param_fields == NULL){
+        fprintf(stderr,"-E- %s line %d: Memory allocation failed.\n",
+        __FILE__,__LINE__);
+        return(EXIT_FAILURE);
+      }
+      strcpy(param_fields,PARAM);
+      strcat(param_fields,"_sum,");
+      strcat(param_fields,PARAM);
+      strcat(param_fields,"_sum_sq");
+    }
+    
+    
+    if(VSsetfields(pvd_id,param_fields) == FAIL){
+      fprintf(stderr,"-E- %s line %d: VSsetfields(%d,%s) failed.\n",
+      __FILE__,__LINE__,pvd_id,param_fields);
+      return(EXIT_FAILURE);
+    }
+    
+    
+   for (i = 0; i < numrecs; i++ ) {
+     
+      // pvd off
+      /*
+      Read the sum and sum-of-squares for the
+      the specified parameter for this bin.
+      */
+      
+      if(VSseek(pvd_id,i) == FAIL){
+        fprintf(stderr,"-E- %s line %d: VSseek(%d,%d) failed.\n", __FILE__,__LINE__,pvd_id,i);
+        
+        return(EXIT_FAILURE);
+      }
+      if(VSread(pvd_id,paramrec,1,FULL_INTERLACE) != 1){
+        fprintf(stderr,"-E- %s line %d: ",__FILE__,__LINE__);
+        fprintf(stderr,"VSread(%d,paramrec,1,FULL_INTERLACE) failed.\n", pvd_id);
+        return(EXIT_FAILURE);
+      }
+      /*
+      VSfpack() sets the global sum and sum_sq variables
+      via the paramptrs pointer array.
+      */
+      if(VSfpack(pvd_id,_HDF_VSUNPACK,param_fields,paramrec,PREC_SIZE,1,NULL,paramptrs)   == FAIL){
+        fprintf(stderr,"-E- %s line %d: ",__FILE__,__LINE__);
+        fprintf(stderr,"VSfpack(%d, ...) failed.\n", pvd_id);
+        return(EXIT_FAILURE);
+      }
+      
+  
+  
+     // pvd off
+      parsum[i] = summ;
+      parssq[i] = sum_sq;
+      
+   }
+  
+    List z2  = List::create() ;
+   
+    z2["sum"] = parsum;
+    z2["ssq"] = parssq;
+    
+  z[vstrname] = z2;
+  
+  
+    // pvd off
   if(VSdetach(pvd_id) == FAIL){
     fprintf(stderr,"-E- %s line %d: VSdetach(%d) failed.\n",
     __FILE__,__LINE__,pvd_id);
     return(EXIT_FAILURE);
+  
   }
 
+
+    
+  }
+  
 
   if(VSdetach(vdata_id) == FAIL){
     fprintf(stderr,"-E- %s line %d: VSdetach(%d) failed.\n",
     __FILE__,__LINE__,vdata_id);
     return(EXIT_FAILURE);
   }
+  
   if(Vend(file_id) == FAIL){
     fprintf(stderr,"-E- %s line %d: Vend(%d) failed.\n",
     __FILE__,__LINE__,file_id);
@@ -331,14 +335,7 @@ List binlist(CharacterVector filename, CharacterVector vname) {
   free(binnums);
   
   
-  List z  = List::create() ;
-  z["bin_num"] = bin;
-  z["nobs"] = nobservations;
-  z["nscenes"] = nsc;
-  z["weights"] = wghts;
-  z["sum"] = parsum;
-  z["ssq"] = parssq;
-  
+
   return z ;
 }
 

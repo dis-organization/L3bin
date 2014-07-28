@@ -10,19 +10,19 @@ readL3 <- function(x, vname) {
   }
   
   
-  bindata <- binlist(x, names(vdatalist)[1L])
-  names(bindata) <- gsub("sum", sprintf("%s_sum", names(vdatalist)[1L]), names(bindata))
-  names(bindata) <- gsub("ssq", sprintf("%s_ssq", names(vdatalist)[1L]), names(bindata))
+  bindata <- binlist(x, names(vdatalist))
+  ##names(bindata) <- gsub("sum", sprintf("%s_sum", names(vdatalist)[1L]), names(bindata))
+ ## names(bindata) <- gsub("ssq", sprintf("%s_ssq", names(vdatalist)[1L]), names(bindata))
   
-  ## now read the other parameters if any
-  if (length(vdatalist) > 1L) {
-    for (i in seq_len(length(vdatalist) - 1L)) {
-      tmp <- binlist(x, names(vdatalist)[i])
-      bindata[[sprintf("%s_sum", names(vdatalist)[i])]] <- tmp[["sum"]]
-      bindata[[sprintf("%s_ssq", names(vdatalist)[i])]] <- tmp[["ssq"]]
-      
-    }
-  }
+#   ## now read the other parameters if any
+#   if (length(vdatalist) > 1L) {
+#     for (i in seq_len(length(vdatalist) - 1L)) {
+#       tmp <- binlist(x, names(vdatalist)[i])
+#       bindata[[sprintf("%s_sum", names(vdatalist)[i])]] <- tmp[["sum"]]
+#       bindata[[sprintf("%s_ssq", names(vdatalist)[i])]] <- tmp[["ssq"]]
+#       
+#     }
+#   }
   bindata
 }
 # chl.pal <- raadtools::chl.pal
@@ -37,17 +37,17 @@ readL3 <- function(x, vname) {
 
 swratio <- function(x) {
   log10(pmax((x$Rrs_443_sum / x$Rrs_555_sum), 
-       (x$Rrs_490_sum / x$Rrs_555_sum), 
-       (x$Rrs_510_sum / x$Rrs_555_sum)
-  ))
+             (x$Rrs_490_sum / x$Rrs_555_sum), 
+             (x$Rrs_510_sum / x$Rrs_555_sum) 
+  ) )
 }
 
 swchl <- function(x, johnson = FALSE) {
   swr <- swratio(x) 
   if (johnson) {
-    10 ^ (0.6736 - 0.27014 * swr - 0.4939* swr^2 - 0.4756 * swr^3)
+    (10 ^ (0.6736 - 2.0714 * swr - 0.4939* swr^2 + 0.4756 * swr^3))
   } else {
-  10 ^ (0.3272 - 2.9940 * swr + 2.7218 * swr^2 - 1.2259 * swr^3 - 1.2280 * swr^4)
+    (10 ^ (0.3272 - 2.9940 * swr + 2.7218 * swr^2 - 1.2259 * swr^3 - 0.5683 * swr^4))
   }
 }
 
