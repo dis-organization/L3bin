@@ -1,3 +1,8 @@
+// source taken with permission from Norman Kuring (NASA)
+// http://oceancolor.gsfc.nasa.gov/DOCS/OCSSW/l3bindump_8c_source.html
+// and from smigen.cpp (NASA, Seadas)
+// http://oceancolor.gsfc.nasa.gov/DOCS/OCSSW/smigen_8cpp_source.html
+
 #include <math.h>
 #include "hdf.h"
 
