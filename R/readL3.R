@@ -9,11 +9,54 @@ readL3 <- function(x, vname) {
     vdatalist <- vdatalist[names(vdatalist) == vname]
   }
   
+  
   bindata <- binlist(x, names(vdatalist)[1L])
+  names(bindata) <- gsub("sum", sprintf("%s_sum", names(vdatalist)[1L]), names(bindata))
+  names(bindata) <- gsub("ssq", sprintf("%s_ssq", names(vdatalist)[1L]), names(bindata))
+  
+  ## now read the other parameters if any
+  if (length(vdatalist) > 1L) {
+    for (i in seq_len(length(vdatalist) - 1L)) {
+      tmp <- binlist(x, names(vdatalist)[i])
+      bindata[[sprintf("%s_sum", names(vdatalist)[i])]] <- tmp[["sum"]]
+      bindata[[sprintf("%s_ssq", names(vdatalist)[i])]] <- tmp[["ssq"]]
+      
+    }
+  }
+  bindata
 }
+# chl.pal <- raadtools::chl.pal
+# 
+# plotbin <- function(x, pal = chl.pal) {
+#   ll <- bin2lonlat(x$bin_num)
+#   function(x, xlim, ylim, ...) {
+#     asub <- ll[,1] >= xlim[1] & ll[,1] <= xlim[2] & ll[,2] >= ylim[1] & ll[,2] <= ylim[2]
+#      plot(ll[asub, ], col = pal(), ...)
+#   }
+# }
+
+swratio <- function(x) {
+  log10(pmax((x$Rrs_443_sum / x$Rrs_555_sum), 
+       (x$Rrs_490_sum / x$Rrs_555_sum), 
+       (x$Rrs_510_sum / x$Rrs_555_sum)
+  ))
+}
+
+swchl <- function(x, johnson = FALSE) {
+  swr <- swratio(x) 
+  if (johnson) {
+    10 ^ (0.6736 - 0.27014 * swr - 0.4939* swr^2 - 0.4756 * swr^3)
+  } else {
+  10 ^ (0.3272 - 2.9940 * swr + 2.7218 * swr^2 - 1.2259 * swr^3 - 1.2280 * swr^4)
+  }
+}
+
+
+
 
 iz2 <- function(x) {
   uncx <- gsub(".bz2$", "", x)
+  needsdecompress <- FALSE
   if (!file.exists(x)) {
     if (!file.exists(uncx)) stop(sprintf("no file: %s", x)) else needsdecompress <- TRUE
   }

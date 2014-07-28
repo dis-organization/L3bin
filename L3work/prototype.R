@@ -65,22 +65,7 @@ brrs <- readL3(basename(brrsf)
                
                
                
-               swratio <- function(x) {
-                 log10(pmax((x$Rrs_443_sum / x$Rrs_555_sum), 
-                            (x$Rrs_490_sum / x$Rrs_555_sum), 
-                            (x$Rrs_510_sum / x$Rrs_555_sum) 
-                 ) )
-               }
-               
-               swchl <- function(x, johnson = FALSE) {
-                 swr <- swratio(x) 
-                 if (johnson) {
-                   (10 ^ (0.6736 - 2.0714 * swr - 0.4939* swr^2 + 0.4756 * swr^3))
-                 } else {
-                   (10 ^ (0.3272 - 2.9940 * swr + 2.7218 * swr^2 - 1.2259 * swr^3 - 0.5683 * swr^4))
-                 }
-               }
-               
+     
                asub <- ll[,1] >= xmin(e) & ll[,1] <= xmax(e) & ll[,2] >= ymin(e) & ll[,2] <= ymax(e)
                bb <- bin2bounds(brrs$bin_num[asub])
                
